@@ -1,15 +1,11 @@
-node_modules/
-dist/
 data/
 .env
-*.tsbuildinfo
-playwright-report/
-test-results/
-__pycache__/
 .env.*
 !.env.example
 .venv/
-.npm-cache/
+.pip-cache/
+__pycache__/
+*.pyc
 *.sqlite
 *.sqlite-*
 *.db
@@ -18,3 +14,8 @@ __pycache__/
 *.xls
 *.zip
 exports/
+test-results/
+node_modules/
+dist/
+*.tsbuildinfo
+.npm-cache/

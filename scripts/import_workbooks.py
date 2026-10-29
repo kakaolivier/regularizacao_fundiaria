@@ -156,7 +156,7 @@ def run(paths, output):
     counts=Counter(s['kind'] for s in sources)
     result={'importedAt':datetime.now(timezone.utc).isoformat(),'workbooks':books,'cases':cases,'sources':sources,'supplementary':supplementary,'summary':{'cases':len(cases),'records':len(sources),'byKind':dict(counts),'linkedBoth':sum(len(c['origins'])==2 for c in cases),'pendingReconciliation':sum(c['needsReconciliation'] for c in cases),'hasCoordinates':False}}
     output.parent.mkdir(parents=True,exist_ok=True)
-    output.write_text(json.dumps(result,ensure_ascii=False,indent=2))
+    output.write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
     print(json.dumps(result['summary'],ensure_ascii=False,indent=2))
 
 if __name__=='__main__':

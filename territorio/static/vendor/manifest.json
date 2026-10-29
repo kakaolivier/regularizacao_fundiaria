@@ -1,0 +1,26 @@
+[
+  {
+    "package": "leaflet",
+    "version": "1.9.4",
+    "license": "BSD-2-Clause",
+    "sha256_archive": "84c65a256e50657896f54c33bd857b6849ebe94c817803be818bf32a3dde0b77"
+  },
+  {
+    "package": "@geoman-io/leaflet-geoman-free",
+    "version": "2.20.2",
+    "license": "MIT",
+    "sha256_archive": "1688a81159de5610fcb7af59f7d76a5133aa5fe58d1840aa43b5915a0c1699a0"
+  },
+  {
+    "package": "@fontsource-variable/dm-sans",
+    "version": "5.3.0",
+    "license": "OFL-1.1",
+    "sha256_archive": "cea46ee690c31efea45c0fbee790c6fefefc979656e8515b12f5bdb7c5bc1876"
+  },
+  {
+    "package": "@fontsource-variable/manrope",
+    "version": "5.3.0",
+    "license": "OFL-1.1",
+    "sha256_archive": "9629a2474e2bd73944d83392c856e268193d42c3954455bd6adb3d1ea74aa27a"
+  }
+]

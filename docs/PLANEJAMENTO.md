@@ -2,7 +2,9 @@
 
 ## Entrega atual
 
-Aplicação local de gestão fundiária com mapa municipal, processo detalhado, campos originais, referências de imóveis/trechos, histórico, documentos versionados, tarefas, controle pericial, geometrias versionadas e exportações CSV/GeoJSON. Fontes reais importadas em banco local ignorado pelo Git; testes usam bases temporárias fictícias.
+Aplicação local de gestão fundiária com mapa municipal, processo detalhado, campos originais, referências de imóveis/trechos, histórico, documentos versionados, tarefas, controle pericial, geometrias versionadas e exportações CSV/GeoJSON. Servidor e regras em Python, páginas Jinja e SQLite compatível com a versão anterior. Instalação e abertura no Windows pelos arquivos `configurar.bat` e `iniciar.bat`, sem Node.js ou compilação.
+
+O download do GitHub começa sem os dados reais. As planilhas podem ser importadas localmente ou uma pasta `data/` anterior pode ser reaproveitada após backup. Banco e anexos são ignorados pelo Git; testes usam bases temporárias fictícias.
 
 ## Primeiro piloto com a equipe
 

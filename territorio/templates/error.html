@@ -1,0 +1,1 @@
+{% extends 'base.html' %}{% from 'macros.html' import empty with context %}{% block content %}<section class="card">{{empty('Não foi possível concluir',message)}}<div class="center"><button class="button secondary" onclick="history.back()">Voltar e corrigir</button><a class="button" href="{{url_for('overview')}}">Visão geral</a></div></section>{% endblock %}
