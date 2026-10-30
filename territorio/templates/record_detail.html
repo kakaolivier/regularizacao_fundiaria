@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import icon, csrf, field, timeline with context %}
+{% block content %}
+<a class="back-link" href="{{url_for('records_page')}}">← Imóveis e trechos</a>
+<div class="detail-heading"><div><div class="eyebrow">IMÓVEL / TRECHO · VERSÃO {{record.version}}</div><h1>{{record.title}}</h1><div class="detail-meta"><span>{{record.city}}</span><span>{{record.section}}</span><span>{{record.number or 'Sem processo judicial'}}</span></div></div><a class="button secondary" href="{{url_for('case_detail',case_id=record.caseId)}}">Abrir processo {{icon('arrow',16)}}</a></div>
+<div class="record-context"><div><span>Etapa atual</span><strong>{{record.stage}}</strong></div><div><span>Responsável MVGA</span><strong>{{record.assignee or 'Não informado'}}</strong></div><div><span>Chave permanente do registro</span><code>{{record.key}}</code></div></div>
+<div class="record-shortcuts"><a href="{{url_for('case_detail',case_id=record.caseId,tab='documentos')}}">{{icon('file')}}Documentos do processo</a><a href="{{url_for('case_detail',case_id=record.caseId,tab='mapa')}}">{{icon('map')}}Áreas no mapa</a><a href="#record-history">{{icon('clock')}}Histórico deste imóvel</a></div>
+{% if record.warnings %}<details class="card quality-note"><summary>{{record.warnings|length}} pontos para conferir neste registro</summary><ul>{% for warning in record.warnings %}<li>{{warning.message}}</li>{% endfor %}</ul><p>Campos obrigatórios no dicionário podem depender da fase do caso. A indicação de pendência não impede consultar ou atualizar outros campos.</p></details>{% endif %}
+<nav class="record-tabs" aria-label="Áreas do acompanhamento">{% for key,label in record_groups.items() %}<a class="{{'active' if group==key}}" href="{{url_for('record_detail',identifier=record.id,group=key)}}">{{label}}</a>{% endfor %}</nav>
+<section class="card">
+  <div class="section-heading"><div><h2>{{record_groups[group]}}</h2><p class="section-description">Consulte os dados atuais e preencha somente o que mudou. Campos vazios preservam o valor anterior.</p></div></div>
+  <form method="post" class="record-form">
+    {{csrf()}}<input type="hidden" name="version" value="{{record.version}}"><input type="hidden" name="group" value="{{group}}">
+    <div class="record-fields">
+    {% for col,f in record_fields.items() if f.group==group %}
+      {% set value=record['values'].get(col,'') %}{% set locked=f.type=='auto' or (not f.overwrite and meaningful(value)) %}
+      <div class="record-field {{'wide' if col in ['C','AU','AV','AX','AF','AQ','AI','AJ','AG','Y']}}">
+        <label for="field-{{col}}">{{f.label}}{% if locked %}<span class="field-hint">{{'Automático' if f.type=='auto' else 'Cadastro protegido'}}</span>{% endif %}</label>
+        {% if locked %}<div class="readonly-value" id="field-{{col}}">{{record.computed.get(col,value) or 'Não calculado / não informado'}}</div>
+        {% elif f.type=='choice' %}<select id="field-{{col}}" name="{{col}}"><option value="">Manter valor atual</option>{% for option in f.options %}<option value="{{option}}">{{option}}</option>{% endfor %}</select>
+        {% elif f.type=='date' %}<input type="date" id="field-{{col}}" name="{{col}}">
+        {% elif f.type=='money' %}<input type="text" inputmode="decimal" maxlength="30" placeholder="Ex.: 12500,50" id="field-{{col}}" name="{{col}}">
+        {% else %}<textarea rows="2" maxlength="20000" placeholder="Preencher alteração" id="field-{{col}}" name="{{col}}"></textarea>{% endif %}
+        {% if not locked %}<div class="current-value"><span>Atual</span><p>{{value|controlvalue(f.type)}}</p></div>{% endif %}
+        {% if col=='AP' %}<p class="fine-print">Cálculo do dicionário pela data do cumprimento do mandado. Não substitui a confirmação documental de liberação da obra. Origem: {{value or 'não informada'}}.</p>{% elif col=='W' %}<p class="fine-print">Petição inicial menos solicitação de ajuizamento, em dias. Origem: {{value or 'não informada'}}.</p>{% elif col=='C' %}<p class="fine-print">Mantida após a criação, inclusive se houver correção formal do número judicial. Use esta ficha para atualizar o imóvel correto.</p>{% else %}<p class="fine-print">{{f.guidance}}</p>{% endif %}
+      </div>
+    {% endfor %}
+    </div>
+    <div class="record-save"><div class="form-row">{{field('Registrado por','author')}}{{field('Motivo / referência documental','reason',limit=1000)}}</div><div class="form-actions"><button type="submit" class="button">Salvar {{record_groups[group]}}</button></div></div>
+  </form>
+</section>
+<section class="card timeline-card" id="record-history"><div class="section-heading"><h2>Histórico deste imóvel</h2></div>{{timeline(events)}}</section>
+<details class="card source-detail"><summary><h3>Versões de origem preservadas</h3></summary>{% for source in sources if source %}<details class="source-detail"><summary>{{source.filename}} · linha {{source.row}} · {{source.importedAt|brdate}}</summary><div class="raw-fields">{% for f in source.fields %}<div><span>{{f.label}}<small>Coluna {{f.column}}</small></span><p>{{f.value}}</p></div>{% endfor %}</div></details>{% endfor %}</details>
+{% endblock %}

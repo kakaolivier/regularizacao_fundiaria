@@ -6,6 +6,8 @@ Aplicação local de gestão fundiária com mapa municipal, processo detalhado, 
 
 O download do GitHub começa sem os dados reais. As planilhas podem ser importadas localmente ou uma pasta `data/` anterior pode ser reaproveitada após backup. Banco e anexos são ignorados pelo Git; testes usam bases temporárias fictícias.
 
+A evolução de 30/10/2026 acrescenta registros por imóvel/subtrecho, 56 campos guiados pelo dicionário, oito áreas de atualização, histórico antes/depois e importação revisável de BANCO_REG pelo site. Chaves repetidas ficam para conferência. Veja [a análise das mudanças e pendências](EVOLUCAO-DO-CONTROLE.md).
+
 ## Primeiro piloto com a equipe
 
 | Decisão | Quem pode esclarecer | Resultado esperado |
@@ -21,7 +23,7 @@ Sugestão de piloto: selecionar um caso judicial em perícia, um caso extrajudic
 
 ## Próximas entregas
 
-1. Reconciliação manual de fontes, identificação de imóveis e vínculo explícito entre matrículas, proprietários, processos e parcelas. Importação de revisões com prévia das diferenças.
+1. Reconciliação manual de fontes e de chaves, divisão/fusão de parcelas e vínculos explícitos entre matrículas, proprietários, processos e áreas. A prévia de revisões já existe para BANCO_REG; falta estender a reconciliação aos demais formatos e às mudanças de identidade.
 2. Login corporativo, autorização por perfil, autoria autenticada e trilha de auditoria protegida. A autoria declarada da versão local não atende esse requisito.
 3. Banco PostgreSQL/PostGIS, armazenamento privado de arquivos, rotinas de backup/restauração e implantação revisada pela TI.
 4. Fluxos configuráveis por modalidade, condicionantes, listas documentais e alertas de prazo.

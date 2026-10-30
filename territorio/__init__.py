@@ -6,6 +6,7 @@ import os
 import re
 import secrets
 import unicodedata
+import time
 from collections import Counter
 from datetime import date, datetime
 from pathlib import Path
@@ -14,6 +15,7 @@ from flask import Flask, Response, flash, g, jsonify, redirect, render_template,
 from werkzeug.exceptions import HTTPException
 from .store import Store
 from . import services as svc
+from . import regularizacao as reg
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -91,7 +93,7 @@ def create_app(data_dir=None, testing=False):
 
     @app.context_processor
     def constants():
-        return {'csrf_token': csrf_token, 'categories': svc.CATEGORIES, 'methods': svc.METHODS, 'document_categories': svc.DOCUMENT_CATEGORIES, 'financial_names': svc.FINANCIAL_NAMES, 'today': date.today().isoformat(), 'page_names': {'overview': 'Visão geral', 'processes': 'Processos', 'map': 'Mapa territorial', 'expert': 'Perícias e avaliações', 'tasks': 'Tarefas e prazos', 'sources': 'Base de dados', 'planner': 'Planejamento'}}
+        return {'csrf_token': csrf_token, 'categories': svc.CATEGORIES, 'methods': svc.METHODS, 'document_categories': svc.DOCUMENT_CATEGORIES, 'financial_names': svc.FINANCIAL_NAMES, 'today': date.today().isoformat(), 'record_fields': reg.FIELDS, 'record_groups': reg.GROUPS, 'meaningful': reg.meaningful, 'page_names': {'overview': 'Visão geral', 'processes': 'Processos', 'records': 'Imóveis e trechos', 'map': 'Mapa territorial', 'expert': 'Perícias e avaliações', 'tasks': 'Tarefas e prazos', 'sources': 'Base de dados', 'planner': 'Planejamento'}}
 
     @app.template_filter('brnumber')
     def brnumber(value, places=0):
@@ -100,6 +102,14 @@ def create_app(data_dir=None, testing=False):
     @app.template_filter('money')
     def money(value):
         return 'R$ ' + brnumber(value, 2)
+
+    @app.template_filter('controlvalue')
+    def controlvalue(value, kind):
+        if kind == 'date' and reg.iso_date(value):
+            return reg.iso_date(value).strftime('%d/%m/%Y')
+        if kind == 'money' and re.fullmatch(r'\d+(?:\.\d+)?', value):
+            return money(value)
+        return value or 'Não informado'
 
     @app.template_filter('brdate')
     def brdate(value):
@@ -166,6 +176,104 @@ def create_app(data_dir=None, testing=False):
     @app.get('/fontes')
     def sources_page():
         return render('sources.html', 'sources')
+
+    @app.get('/imoveis')
+    def records_page():
+        rows = [reg.record_view(r) for r in store().all('records')]
+        cities = sorted({r['city'] for r in rows})
+        stages = sorted({r['stage'] for r in rows})
+        query = normalize(request.args.get('q', ''))
+        rows = [r for r in rows if (not query or query in normalize(' '.join(r['values'].values()) + ' ' + re.sub(r'\D', '', r['number'])))
+                and (not request.args.get('city') or r['city'] == request.args['city'])
+                and (not request.args.get('stage') or r['stage'] == request.args['stage'])
+                and (not request.args.get('pending') or r['warnings'])
+                and (not request.args.get('mandate') or bool(reg.iso_date(r['values'].get('AO', ''))) == (request.args['mandate'] == 'yes'))]
+        total = len(rows)
+        pages = max(1, (total + 19) // 20)
+        try:
+            page = max(1, min(pages, int(request.args.get('page', 1))))
+        except ValueError:
+            page = 1
+        filters = request.args.to_dict()
+        filters.pop('page', None)
+        return render('records.html', 'records', rows=rows[(page-1)*20:page*20], total=total, pages=pages, page=page, cities=cities, stages=stages, filter_args=filters)
+
+    @app.route('/imoveis/<identifier>', methods=['GET', 'POST'])
+    def record_detail(identifier):
+        record = store().get('records', identifier)
+        if not record:
+            raise svc.Problem('Imóvel / trecho não encontrado.', 404)
+        if request.method == 'POST':
+            reg.update_record(store(), identifier, request.form)
+            flash('Atualização salva. Valores anteriores e motivo registrados no histórico.')
+            return redirect(url_for('record_detail', identifier=identifier, group=request.form.get('group')), 303)
+        group = request.args.get('group', 'CADASTRO')
+        if group not in reg.GROUPS:
+            group = 'CADASTRO'
+        events = [e for e in store().all('events', record['caseId']) if e.get('recordId') == identifier]
+        events.sort(key=lambda e: e.get('createdAt', ''), reverse=True)
+        return render('record_detail.html', 'records', record=reg.record_view(record), group=group, events=events,
+                      sources=[store().get('sources', s) for s in record['sourceIds']])
+
+    @app.route('/importar', methods=['GET', 'POST'])
+    def import_control():
+        if request.method == 'GET':
+            return render('import_control.html', 'sources', preview=None, plan=None)
+        upload = request.files.get('workbook')
+        if not upload or not upload.filename or not upload.filename.lower().endswith('.xlsx'):
+            raise svc.Problem('Selecione o arquivo CONTROLE_REGULARIZACAO.xlsx.')
+        raw = upload.read(25 * 1024 * 1024 + 1)
+        if len(raw) > 25 * 1024 * 1024:
+            raise svc.Problem('Limite de 25 MB por planilha.', 413)
+        previews = directory / 'import-previews'
+        previews.mkdir(exist_ok=True)
+        # Expired previews are temporary; committed source snapshots remain in SQLite.
+        for path in previews.glob('*.json'):
+            if time.time() - path.stat().st_mtime > 86400:
+                path.unlink(missing_ok=True)
+        token = secrets.token_hex(24)
+        temporary = previews / (token + '.xlsx')
+        try:
+            temporary.write_bytes(raw)
+            preview = reg.read_control(temporary, upload.filename.replace('\\', '/').split('/')[-1])
+        finally:
+            temporary.unlink(missing_ok=True)
+        plan = reg.plan_import(store(), preview)
+        preview['fingerprint'] = plan['fingerprint']
+        (previews / (token + '.json')).write_text(json.dumps(preview, ensure_ascii=False), encoding='utf-8')
+        session['import_preview'] = token
+        return redirect(url_for('import_preview', token=token), 303)
+
+    def read_preview(token):
+        if not re.fullmatch(r'[a-f0-9]{48}', token) or session.get('import_preview') != token:
+            raise svc.Problem('Prévia indisponível nesta sessão. Selecione a planilha novamente.', 404)
+        path = directory / 'import-previews' / (token + '.json')
+        if not path.is_file() or time.time() - path.stat().st_mtime > 86400:
+            raise svc.Problem('A prévia expirou. Selecione a planilha novamente.', 410)
+        return json.loads(path.read_text(encoding='utf-8'))
+
+    @app.get('/importar/<token>')
+    def import_preview(token):
+        preview = read_preview(token)
+        plan = reg.plan_import(store(), preview)
+        rows = [i for i in plan['items'] if not request.args.get('status') or i['status'] == request.args['status']]
+        pages = max(1, (len(rows) + 19) // 20)
+        try:
+            page = max(1, min(pages, int(request.args.get('page', 1))))
+        except ValueError:
+            page = 1
+        return render('import_control.html', 'sources', preview=preview, plan=plan, token=token,
+                      changed=plan['fingerprint'] != preview['fingerprint'], preview_rows=rows[(page-1)*20:page*20],
+                      preview_total=len(rows), page=page, pages=pages)
+
+    @app.post('/importar/<token>/confirmar')
+    def confirm_import(token):
+        preview = read_preview(token)
+        report = reg.apply_import(store(), preview, preview['fingerprint'], request.form.get('author', ''))
+        (directory / 'import-previews' / (token + '.json')).unlink(missing_ok=True)
+        session.pop('import_preview', None)
+        flash(f"Importação concluída: {report['counts'].get('new', 0)} imóveis novos, {report['counts'].get('updated', 0)} atualizados e {report['counts'].get('blocked', 0)} linhas separadas para conferência.")
+        return redirect(url_for('sources_page'), 303)
 
     @app.get('/planejamento')
     def planner_page():

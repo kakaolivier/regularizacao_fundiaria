@@ -11,6 +11,12 @@
     dialog.addEventListener('click', e => { const r = dialog.getBoundingClientRect(); if (e.target === dialog && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom)) dialog.close(); });
   });
   document.querySelectorAll('form[method="post"]').forEach(form => form.addEventListener('submit', () => { form.querySelectorAll('button[type="submit"], .form-actions button:not([type="button"])').forEach(button => { button.disabled = true; }); }));
+  document.querySelectorAll('form[data-processing-message]').forEach(form => form.addEventListener('submit', () => {
+    const status = document.createElement('p');
+    status.setAttribute('role', 'status');
+    status.textContent = form.dataset.processingMessage;
+    form.append(status);
+  }));
   const notice = document.getElementById('notice');
   let timer;
   window.notify = (message, error = false) => { clearTimeout(timer); notice.hidden = false; notice.classList.toggle('error', error); notice.setAttribute('role', error ? 'alert' : 'status'); notice.querySelector('span').textContent = message; timer = setTimeout(() => notice.hidden = true, 7000); };

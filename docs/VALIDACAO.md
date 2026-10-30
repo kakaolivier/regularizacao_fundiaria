@@ -1,8 +1,8 @@
 # Validação da versão Python
 
-Verificado em 29/10/2026 no ambiente Linux, com Python 3.12 e Chromium. Os testes usam dados fictícios em diretórios temporários.
+Verificado em 30/10/2026 no ambiente Linux, com Python 3.12 e Chromium. Os testes usam dados fictícios em diretórios temporários.
 
-- Instalação pelo `scripts/setup.sh`: ambiente virtual, dependências de `requirements.txt` e sete testes `unittest`.
+- Instalação pelo `scripts/setup.sh`: ambiente virtual, dependências de `requirements.txt` e 14 testes `unittest`.
 - Cadastro, prevenção de duplicidade por CNJ completo, histórico, mudança de etapa, tarefas e persistência após reabrir o banco.
 - Geometrias: área estimada, Polygon/MultiPolygon, furos, versões, conflito de edição, isolamento entre processos e rejeição de coordenadas inválidas, cruzamentos e sobreposições.
 - Anexos: bytes preservados no download, nomes com acentos, versões, vínculo com processo/área e rejeição de arquivos inválidos sem deixar arquivos órfãos.
@@ -20,9 +20,10 @@ Verificado em 29/10/2026 no ambiente Linux, com Python 3.12 e Chromium. Os teste
 ```bash
 bash scripts/setup.sh
 python tests/browser.py --python .venv/bin/python --chromium /usr/bin/chromium
+python tests/browser_regularizacao.py --python .venv/bin/python --chromium /usr/bin/chromium
 ```
 
-O segundo comando requer o pacote Python `playwright` no interpretador que executa o teste, além do Chromium indicado. Não são dependências da aplicação. O teste inicia e encerra seu próprio servidor na porta 3199. Capturas ficam em `test-results/`, ignorado pelo Git.
+Os comandos de navegador requerem o pacote Python `playwright` no interpretador que executa o teste, além do Chromium indicado. Não são dependências da aplicação. Os testes iniciam e encerram servidores próprios nas portas 3199 e 3201. Capturas ficam em `test-results/`, ignorado pelo Git.
 
 Com a aplicação iniciada por `.venv/bin/python app.py`, execute:
 
@@ -30,6 +31,12 @@ Com a aplicação iniciada por `.venv/bin/python app.py`, execute:
 .venv/bin/python scripts/check_ready.py
 ```
 
-Esta entrega não reimportou as planilhas reais: elas não estão no checkout atual nem no GitHub. Os números históricos da análise das planilhas não representam uma base pré-carregada no download. Para usar os dados, siga a importação ou a migração de `data/` descrita no README.
+O novo CONTROLE_REGULARIZACAO.xlsx foi lido e importado em uma base temporária de validação: 482 linhas candidatas, 466 imóveis elegíveis, 359 dossiês e 16 linhas bloqueadas. A operação levou cerca de 17 segundos neste ambiente; o tempo varia por computador. As páginas principais e uma ficha de imóvel responderam corretamente com essa base. A base temporária foi removida ao terminar; o download do GitHub continua sem dados reais.
+
+O dicionário foi incorporado como metadados de 56 campos. Os novos testes cobrem datas seriais, linhas formatadas vazias, chaves repetidas, identificação incompleta, fórmulas sem cache, registros separados sob o mesmo CNJ, preservação de anexos/tarefas, backups, revisões, campos protegidos, conflito de versões, rollback, CSRF e escape HTML.
+
+`tests/browser_regularizacao.py` validou upload, prévia sem gravação, filtro de linhas bloqueadas, confirmação, edição por área, histórico antes/depois, preservação do trecho vizinho, proteção contra repetição de arquivo e interface móvel, com a rede externa bloqueada. O teste original de mapa, documentos e tarefas também passou.
+
+Os números históricos das demais análises não representam uma base pré-carregada no download. Para usar os dados, siga a importação ou migração de `data/` descrita no README.
 
 Não houve validação no computador corporativo, de instalação multiusuário ou de restauração em uma nova tarefa de nuvem. Login corporativo e autorização por perfil continuam no planejamento.

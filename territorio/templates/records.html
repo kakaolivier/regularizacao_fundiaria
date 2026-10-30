@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import icon, empty, badge with context %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">CADA IMÓVEL, UM ACOMPANHAMENTO</div><h1>Imóveis e trechos</h1><p>Consulte a etapa, a equipe responsável e as pendências de cada área.</p></div><a class="button" href="{{url_for('import_control')}}">{{icon('file',17)}}Importar controle</a></div>
+<section class="card list-card">
+  <form method="get">
+    <div class="list-toolbar"><label class="local-search">{{icon('search')}}<input name="q" aria-label="Pesquisar imóveis e trechos" placeholder="Processo, imóvel, trecho, matrícula, protocolo ou chave" value="{{request.args.get('q','')}}"></label><button class="button secondary">Buscar</button></div>
+    <div class="filters">
+      <select name="city" aria-label="Município"><option value="">Todos os municípios</option>{% for c in cities %}<option {% if request.args.get('city')==c %}selected{% endif %}>{{c}}</option>{% endfor %}</select>
+      <select name="stage" aria-label="Etapa"><option value="">Todas as etapas</option>{% for s in stages %}<option {% if request.args.get('stage')==s %}selected{% endif %}>{{s}}</option>{% endfor %}</select>
+      <select name="mandate" aria-label="Data do mandado"><option value="">Mandado: todos</option><option value="yes" {% if request.args.get('mandate')=='yes' %}selected{% endif %}>Com data de cumprimento</option><option value="no" {% if request.args.get('mandate')=='no' %}selected{% endif %}>Sem data de cumprimento</option></select>
+      <label class="checkbox-label"><input type="checkbox" name="pending" value="1" {% if request.args.get('pending') %}checked{% endif %}>Com pendências cadastrais</label><button class="button secondary small">Aplicar</button>
+    </div>
+  </form>
+  {% if rows %}<div class="table-scroll"><table class="cases-table record-table"><thead><tr><th>IMÓVEL / SUBTRECHO</th><th>MUNICÍPIO</th><th>ETAPA ATUAL</th><th>RESPONSÁVEL MVGA</th><th>CONFERÊNCIA</th></tr></thead><tbody>
+    {% for r in rows %}<tr><td><a class="record-link" href="{{url_for('record_detail',identifier=r.id)}}">{{r.title}}</a><small>{{r.section}} · {{r.number or 'Sem processo judicial'}}</small></td><td>{{r.city}}</td><td>{{r.stage}}</td><td>{{r.assignee or 'Não informado'}}</td><td>{% if r.warnings %}<span class="badge amber">{{r.warnings|length}} pendências</span>{% else %}<span class="badge green">Conferido no formato</span>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>{% else %}{{empty('Nenhum imóvel encontrado','Importe o novo controle ou ajuste os filtros. Os processos das planilhas anteriores continuam disponíveis no menu Processos.')}}{% endif %}
+  <div class="pagination"><span>{{total}} imóveis / trechos</span><div>{% if page>1 %}<a href="?{{dict(filter_args,page=page-1)|urlencode}}">← Anterior</a>{% endif %}<span>{{page}} / {{pages}}</span>{% if page<pages %}<a href="?{{dict(filter_args,page=page+1)|urlencode}}">Próxima →</a>{% endif %}</div></div>
+</section>
+{% endblock %}

@@ -3,6 +3,7 @@ import hashlib
 import json
 import math
 import re
+from collections import defaultdict
 from datetime import date
 from pathlib import Path
 from uuid import uuid4
@@ -10,7 +11,7 @@ from shapely.geometry import shape
 from .store import now
 
 CATEGORIES = ['Preparação', 'Em andamento', 'Perícia', 'Registro', 'Arquivado', 'Desistência']
-METHODS = ['A definir', 'Judicial', 'Extrajudicial']
+METHODS = ['A definir', 'Judicial', 'Extrajudicial', 'Administrativo']
 DOCUMENT_CATEGORIES = ['Matrícula', 'Planta / memorial', 'Laudo pericial', 'Parecer jurídico', 'Decisão judicial', 'Acordo', 'Outros']
 FINANCIAL_NAMES = {'deposit': 'Indenização depositada', 'depositUpdated': 'Depósito atualizado · estimativa', 'proposal': 'Proposta do expropriado', 'award': 'Primeiro laudo pericial', 'secondAward': 'Segundo laudo pericial', 'awardUpdated': 'Laudo atualizado · estimativa', 'legalFees': 'Honorários sucumbenciais · estimativa', 'estimatedRemaining': 'A desembolsar · estimativa', 'estimatedTotal': 'Depósito + custo pericial · estimativa', 'expertCost': 'Custo pericial · estimativa', 'expertFees': 'Honorários periciais', 'sentence': 'Sentença / acordo', 'agreement': 'Valor do acordo', 'bond': 'Caução', 'totalDeposit': 'Total depositado', 'recoverIndemnity': 'A reaver · indenização', 'recoverBond': 'A reaver · caução', 'reimbursed': 'Valor reembolsado'}
 
@@ -53,19 +54,41 @@ def display_case(item, sources):
 
 
 def bootstrap(store):
+    from .regularizacao import meaningful, record_view
     sources = {s['id']: s for s in store.all('sources')}
     geometries = store.all('geometries')
+    records = defaultdict(list)
+    for record in store.all('records'):
+        records[record['caseId']].append(record_view(record))
     cases = []
     for item in store.all('cases'):
         related = [sources[key] for key in item.get('sourceIds', []) if key in sources]
-        cases.append({**display_case(item, related), 'searchText': ' '.join(str(s.get(k, '')) for s in related for k in ('title', 'owner', 'process', 'section', 'gisId', 'registry')), 'geometryCount': sum(g['caseId'] == item['id'] for g in geometries)})
-    return {'cases': cases, 'geometries': geometries, 'tasks': store.all('tasks'), 'meta': store.get('meta', 'import') or {'workbooks': [], 'summary': {}, 'supplementary': []}}
+        current = records[item['id']]
+        display = display_case(item, related)
+        if current:
+            expert = [r['expertStage'] for r in current if meaningful(r['expertStage'])]
+            display['hasExpert'] = item.get('hasExpert', False) or any(any(meaningful(r['values'].get(col, '')) for col in ('Z', 'AE', 'AF', 'AB', 'AC')) for r in current)
+            display['hasAward'] = item.get('hasAward', False) or any(r['values'].get('Z', '').strip().upper() == 'SIM' for r in current)
+            display['hasRegistry'] = item.get('hasRegistry', False) or any(meaningful(r['values'].get('S', '')) or meaningful(r['values'].get('AS', '')) for r in current)
+            display['expertStage'] = expert[0] if len(set(expert)) == 1 else 'Fases variam por imóvel' if expert else display.get('expertStage', '')
+            if item.get('regularizacaoManaged'):
+                stages = list(dict.fromkeys(r['stage'] for r in current))
+                display['stage'] = stages[0] if len(stages) == 1 else 'Etapas variam por imóvel'
+        cases.append({**display, 'recordCount': len(current), 'searchText': ' '.join(str(s.get(k, '')) for s in related for k in ('title', 'owner', 'process', 'section', 'gisId', 'registry')) + ' ' + ' '.join(str(v) for r in current for v in r['values'].values()), 'geometryCount': sum(g['caseId'] == item['id'] for g in geometries)})
+    meta = store.get('meta', 'import') or {'workbooks': [], 'summary': {}, 'supplementary': []}
+    imports = sorted([m for m in store.all('meta') if m['id'].startswith('control-')], key=lambda m: m['importedAt'], reverse=True)
+    from .regularizacao import normalize
+    awards = sum(normalize(r['values'].get('Z', '')) == 'sim' for group in records.values() for r in group)
+    pending = sum(normalize(r['values'].get('Z', '')) == 'nao' for group in records.values() for r in group)
+    return {'cases': cases, 'geometries': geometries, 'tasks': store.all('tasks'), 'meta': meta, 'imports': imports, 'recordCount': sum(len(v) for v in records.values()), 'controlAwards': awards, 'controlPending': pending}
 
 
 def detail(store, case_id):
+    from .regularizacao import record_view
     item = require_case(store, case_id)
     sources = store.all('sources', case_id)
-    return {**display_case(item, sources), 'sources': sources, 'events': store.all('events', case_id), 'tasks': store.all('tasks', case_id), 'geometries': store.all('geometries', case_id), 'documents': [{k: v for k, v in d.items() if k != 'storage'} for d in store.all('documents', case_id)]}
+    current = next(c for c in bootstrap(store)['cases'] if c['id'] == case_id)
+    return {**current, 'records': [record_view(r) for r in store.all('records', case_id)], 'sources': sources, 'events': store.all('events', case_id), 'tasks': store.all('tasks', case_id), 'geometries': store.all('geometries', case_id), 'documents': [{k: v for k, v in d.items() if k != 'storage'} for d in store.all('documents', case_id)]}
 
 
 def create_case(store, data):
@@ -87,6 +110,8 @@ def update_stage(store, case_id, data):
     author = text(data, 'author')
     with store.transaction():
         item = require_case(store, case_id)
+        if item.get('regularizacaoManaged'):
+            raise Problem('Atualize a etapa na ficha do imóvel / trecho correspondente.')
         before = item['stage']
         store.put('cases', {**item, 'stage': stage, 'category': category})
         store.event(case_id, kind='decision', title='Etapa atualizada', body=f'{before} → {stage}', author=author)

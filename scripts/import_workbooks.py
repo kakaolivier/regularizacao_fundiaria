@@ -89,6 +89,9 @@ def run(paths, output):
     sources=[]; books=[]; supplementary=[]
     for path in paths:
         wb=load_workbook(path,read_only=True,data_only=True)
+        if 'BANCO_REG' in wb.sheetnames or 'DICIONARIO_DADOS' in wb.sheetnames:
+            wb.close()
+            raise SystemExit('Para o novo controle, abra o site e use Base de dados > Importar controle. O dicionário já está incorporado. Nenhum seed foi gravado.')
         is_expert='LAUDOS APRESENTADOS' in wb.sheetnames
         bookid='pericias' if is_expert else 'acompanhamento'
         info={'id':bookid,'name':path.name,'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'sheets':[]}

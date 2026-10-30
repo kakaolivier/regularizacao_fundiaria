@@ -14,6 +14,8 @@ def main():
     health=json.loads(get('/api/health'));assert health['ok'] and health['runtime']=='python'
     data=json.loads(get('/api/bootstrap'));assert len(data['cases'])==health['cases']
     assert 'Território' in get('/').decode()
+    for route in ('/fontes', '/imoveis', '/importar'):
+        assert get(route)
     for asset in ['/static/app.css','/static/app.js','/static/map.js','/static/vendor/leaflet/leaflet.js','/static/vendor/leaflet-geoman-free/leaflet-geoman.min.js']:
         assert get(asset)
     assert len(json.loads(get('/maps/goias-municipios.geojson'))['features'])==246

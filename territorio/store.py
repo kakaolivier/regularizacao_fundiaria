@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-TABLES = {'cases', 'sources', 'events', 'documents', 'tasks', 'geometries', 'meta'}
+TABLES = {'cases', 'sources', 'events', 'documents', 'tasks', 'geometries', 'records', 'meta'}
 
 
 def now():

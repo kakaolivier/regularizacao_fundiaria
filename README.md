@@ -56,7 +56,31 @@ A pasta `data/` guarda os registros e anexos; preserve-a entre execuções. Para
 
 **Validação:** a compatibilidade foi testada com um banco no esquema da versão Node, incluindo vínculos, tarefas e anexos. Não foi executada uma migração no computador corporativo do usuário.
 
-## Importar as planilhas
+## Importar o novo controle pelo site
+
+Para **CONTROLE_REGULARIZACAO.xlsx**, não é necessário executar comandos de importação:
+
+1. Inicie o sistema e abra **Base de dados → Importar controle**.
+2. Selecione o XLSX que contém a aba **BANCO_REG** e clique em **Analisar planilha**. A leitura pode levar alguns segundos: o arquivo enviado contém mais de um milhão de linhas formatadas vazias.
+3. Confira os registros novos, atualizações, valores anteriores e linhas bloqueadas. Use o filtro **Para conferência** para localizar chaves repetidas ou dados insuficientes.
+4. Informe o responsável e clique em **Confirmar importação**. Somente as linhas elegíveis são aplicadas; o relatório conserva as linhas bloqueadas.
+5. Abra **Imóveis e trechos** para consultar e atualizar cadastro, posse/obras, perícia, acordos, registro, fase final, acompanhamento MVGA e GIS.
+
+As 56 definições de **DICIONARIO_DADOS_REGULARIZACAO.xlsx** já estão incorporadas ao sistema; não é necessário importar esse arquivo. As outras abas do controle são referências de desenho do fluxo, sem execução de VBA ou fórmulas.
+
+Um processo pode conter vários imóveis/subtrechos. A atualização usa a chave específica do imóvel, não apenas o CNJ. Campos vazios preservam os valores atuais. Cada mudança registra o responsável, o motivo e os valores antes/depois. Campos automáticos e campos de cadastro protegidos seguem as restrições do dicionário. Corrigir o número judicial na ficha mantém a chave permanente; uma reconciliação de identidade entre chaves diferentes exige revisão própria.
+
+Para uma revisão do controle, repita o fluxo e confira a prévia antes de confirmar. Reenviar o mesmo arquivo já importado não reaplica dados antigos sobre edições feitas no site. Se alguém alterar a base enquanto a prévia estiver aberta, será necessário gerar uma prévia nova.
+
+Antes de aplicar, o sistema cria uma cópia consistente do banco em `data/backups/`. Esse backup contém os registros do banco; os anexos continuam em `data/uploads/`. Para backup completo da instalação, preserve **toda a pasta `data/`**. As fontes importadas e o histórico ficam no banco; os XLSX originais não são modificados.
+
+Datas aproximadas e textos como “LIBERADO” permanecem como texto com observação. O indicador calculado pela data do mandado não substitui a confirmação documental de liberação da obra. Veja [a análise do novo controle](docs/EVOLUCAO-DO-CONTROLE.md).
+
+### Atualizar uma instalação existente no Windows
+
+Pare o servidor com **Ctrl+C**, faça backup da sua pasta `data/` e baixe o código atualizado. Extraia em uma nova pasta, copie sua `data/` para ela e execute `configurar.bat` e `iniciar.bat`. A nova tabela de imóveis é criada automaticamente, preservando os processos, fontes, anexos, geometrias e tarefas anteriores. Importe o novo controle pela interface. Não apague o banco nem gere um novo `seed.json` para aplicar uma revisão desse controle.
+
+## Importar as duas planilhas anteriores pelo Python
 
 As dependências da importação já estão em `requirements.txt`. Pare o servidor e mantenha as planilhas fora do repositório. No Windows:
 
@@ -81,6 +105,8 @@ Consulte [a análise das planilhas](docs/ANALISE-DAS-PLANILHAS.md).
 - Desenho e edição de polígonos, GeoJSON, áreas de interesse e limites dos imóveis, versões de geometrias.
 - Perícias, valores por natureza e origem, campos originais e sinalização de divergências.
 - Planejamento da evolução do produto.
+- Imóveis e subtrechos individualizados, formulários guiados pelo dicionário e histórico de campos alterados.
+- Importação de BANCO_REG pelo navegador, com prévia, conferência de chaves, backup e proteção contra revisões desatualizadas.
 
 A área geográfica é estimativa de apoio à gestão. Anexe o levantamento técnico aprovado. A validação de polígonos é feita em Python com Shapely, incluindo fechamento, limites de coordenadas, cruzamentos, furos e sobreposições em multipolígonos. GeoJSON: WGS84, um Polygon/MultiPolygon por arquivo, até 500 KB. Documentos: PDF, PNG, JPG, DOCX, XLSX ou TXT, até 25 MB.
 
@@ -100,10 +126,14 @@ Com o servidor em execução, a verificação de prontidão usa somente a biblio
 
 O teste opcional `tests/browser.py` usa a API Python do Playwright e um Chromium de testes, com servidor e base temporários. Foi executado em Linux com toda a rede externa bloqueada, incluindo desenho real de polígonos e uso em viewport móvel. Não é uma dependência para utilizar o sistema.
 
+O teste `tests/browser_regularizacao.py` cobre o upload, a prévia, a confirmação, a separação dos imóveis, a edição por área, o histórico e a repetição de arquivos. Os dois testes de navegador usam dados fictícios.
+
 - `app.py`: inicialização local com Waitress, compatível com Windows.
 - `territorio/__init__.py`: rotas HTML e API JSON.
 - `territorio/services.py`: validações e regras de negócio.
 - `territorio/store.py`: SQLite, transações e importação inicial.
+- `territorio/regularizacao.py`: importação revisável e regras dos imóveis/subtrechos.
+- `territorio/regularizacao_schema.json`: campos e listas derivados do dicionário, sem dados cadastrais reais.
 - `territorio/templates/`: páginas geradas pelo Python/Jinja.
 - `territorio/static/`: estilos e interações do navegador, sem compilação.
 - `scripts/import_workbooks.py`: importador das duas planilhas.
