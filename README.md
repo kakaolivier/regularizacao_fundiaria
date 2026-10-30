@@ -4,6 +4,8 @@ Aplicação web local para processos fundiários: imóveis, documentos, históri
 
 **Não requer Node.js, npm, React ou compilação.** SQLite faz parte do Python. Bibliotecas do mapa, fontes e limites municipais de Goiás estão incluídos no projeto e funcionam sem conexão externa. Ruas do OpenStreetMap são opcionais, carregadas pelo botão **Carregar ruas**.
 
+**Quer aprender a testar sem conhecer a área jurídica?** Consulte o [manual de testes](docs/MANUAL-DE-TESTES.md). Ele explica os caminhos de edição, a seção “Valores e referências”, os termos usados nas telas e 16 exercícios com resultados esperados. Execute `gerar_material_teste.bat` para criar exemplos fictícios e `iniciar_testes.bat` para abrir uma base separada da sua pasta `data/`.
+
 ## Executar no Windows
 
 Requer **Python 3.10 ou superior**, preferencialmente **Python 3.12 de 64 bits**. Baixe o projeto pelo GitHub em **Code → Download ZIP**, extraia e mantenha todos os arquivos na mesma pasta.

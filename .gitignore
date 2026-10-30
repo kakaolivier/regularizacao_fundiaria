@@ -1,4 +1,6 @@
 data/
+/data-teste*/
+/material-teste*/
 .env
 .env.*
 !.env.example

@@ -40,3 +40,11 @@ O dicionário foi incorporado como metadados de 56 campos. Os novos testes cobre
 Os números históricos das demais análises não representam uma base pré-carregada no download. Para usar os dados, siga a importação ou migração de `data/` descrita no README.
 
 Não houve validação no computador corporativo, de instalação multiusuário ou de restauração em uma nova tarefa de nuvem. Login corporativo e autorização por perfil continuam no planejamento.
+
+## Material do manual de testes
+
+Os exemplos gerados por `scripts/gerar_material_teste.py` foram conferidos em diretórios temporários, em Linux/Python 3.12. A segunda execução sobre uma pasta preenchida foi recusada sem substituir arquivos.
+
+A sequência do manual foi conferida pelos formulários HTTP e serviços da aplicação: dois trechos em um processo; edição dos quatro valores monetários; histórico e isolamento entre trechos; datas e campos protegidos; anexos com versões e downloads idênticos aos originais; tarefa concluída/reaberta; polígono vinculado à fonte correta e revisado; persistência ao reabrir a aplicação; revisão que modifica somente providência/responsável; prévia com três linhas bloqueadas e uma elegível; rejeição de formatos inválidos e versões desatualizadas. O importador antigo gerou uma base separada com um processo e duas fontes financeiras, com os valores descritos em T16.
+
+No Chromium, foram conferidos o preenchimento de `12000,50`, o salvamento, a apresentação de **R$ 12.000,50** após recarga e a expansão das duas fontes em **Valores e referências**, sem erros JavaScript e com a rede externa bloqueada. As imagens do manual mostram somente os exemplos fictícios. Os novos iniciadores `.bat` não foram executados no Windows; essa verificação permanece para o computador de teste.
